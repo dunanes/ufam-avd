@@ -52,19 +52,37 @@ def adicionar_linha_somas(df, k):
 
     return df
 
+def extrair_vetor_resultado(df):
+    """Extrai a última linha (normalizada), converte para int e remove a coluna 'I'."""
+    vetor = df.iloc[-1, :-1].astype(int).to_numpy()
+    return vetor[1:]  # Remove a coluna I
+
+def calcular_efeitos_totais(vetor, k):
+    """Calcula o total de efeitos como 2^k * soma dos quadrados dos efeitos."""
+    return (2 ** k) * sum(efeito ** 2 for efeito in vetor)
+
+def calcular_porcoes_de_variacao(vetor, efeitos_totais, nomes_efeitos, k):
+    """Retorna um dicionário com a porção de variação de cada efeito."""
+
+    return {
+        nome: round((2 ** k * (valor ** 2) / efeitos_totais )* 100,1)
+        for nome, valor in zip(nomes_efeitos, vetor)
+    }
+
+
 def main():
     k = int(input("Digite o número de fatores (2 a 5): "))
     while k < 2 or k > 5:
         k = int(input("Número inválido. Digite de 2 a 5: "))
 
     tabela_sinais = gerar_tabela_sinais(k)
-    nomes_efeitos = gerar_nomes_efeitos(k)
+    nomes_efeitos_compostos = gerar_nomes_efeitos(k)
 
     # Adiciona coluna "I" no início
     tabela_completa = [[1] + linha for linha in tabela_sinais]
-    tabela_completa = calcular_efeitos(tabela_completa, nomes_efeitos, k)
+    tabela_completa = calcular_efeitos(tabela_completa, nomes_efeitos_compostos, k)
 
-    colunas = ['I'] + [chr(65 + i) for i in range(k)] + nomes_efeitos
+    colunas = ['I'] + [chr(65 + i) for i in range(k)] + nomes_efeitos_compostos
     df = pd.DataFrame(tabela_completa, columns=colunas)
 
     respostas = ler_respostas(len(df))
@@ -72,8 +90,21 @@ def main():
 
     df = adicionar_linha_somas(df, k)
 
-    print("\nTabela final com efeitos estimados:")
+    print("\nTabela:")
     print(df)
+
+    # Bagunça
+    vetor_resultado = extrair_vetor_resultado(df)
+    efeitos_totais = calcular_efeitos_totais(vetor_resultado, k)
+    print("\nEfeitos:", efeitos_totais)
+
+    nomes_efeitos = [chr(65 + i) for i in range(k)] + gerar_nomes_efeitos(k)
+
+    porcoes = calcular_porcoes_de_variacao(vetor_resultado, efeitos_totais, nomes_efeitos, k)
+    print("\nPorções de Variação por Efeito:")
+    for nome, proporcao in porcoes.items():
+        print(f"{nome}: {proporcao}%")
+
 
 if __name__ == "__main__":
     main()
