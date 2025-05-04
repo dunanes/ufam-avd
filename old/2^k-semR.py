@@ -29,44 +29,14 @@ def calcular_efeitos(tabela, nomes_efeitos, k):
             linha.append(valor)
     return tabela
 
-def ler_respostas2(num_linhas, R):
-    """Lê as respostas Y do usuário para cada linha da tabela, permitindo R respostas por linha."""
+def ler_respostas(num_linhas):
+    """Lê as respostas Y do usuário para cada linha da tabela."""
     respostas = []
     print("\nDigite as respostas (y) para cada linha da tabela:")
     for i in range(num_linhas):
-        linha_respostas = []
-        print(f"Para a linha {i+1}, digite {R} respostas:")
-        for r in range(R):
-            y = float(input(f"Resposta {r+1} para linha {i+1}: "))
-            linha_respostas.append(y)
-        # Calcula a média das respostas e adiciona à lista de respostas
-        media_resposta = sum(linha_respostas) / R
-        respostas.append(media_resposta)
+        y = float(input(f"Resposta para linha {i+1}: "))
+        respostas.append(y)
     return respostas
-
-def ler_respostas(num_linhas, R):
-    """Lê as respostas Y do usuário para cada linha da tabela, permitindo R respostas por linha e retorna um DataFrame."""
-    respostas = []
-    colunas = [f'Yi{r+1}' for r in range(R)]  # Nomes das colunas para as respostas individuais
-    print("\nDigite as respostas (y) para cada linha da tabela:")
-    
-    for i in range(num_linhas):
-        linha_respostas = []
-        print(f"Para a linha {i+1}, digite {R} respostas:")
-        for r in range(R):
-            y = float(input(f"Resposta {r+1} para linha {i+1}: \n"))
-            linha_respostas.append(y)
-        
-        # Adiciona a média das respostas para cada linha
-        media_resposta = sum(linha_respostas) / R
-        linha_respostas.append(media_resposta)
-        respostas.append(linha_respostas)
-    
-    # Adiciona coluna de 'Média' ao final
-    colunas.append('Ŷi')
-    df_respostas = pd.DataFrame(respostas, columns=colunas)
-    
-    return df_respostas
 
 def adicionar_linha_somas(df, k):
     """Adiciona linha com soma ponderada por Y e linha com efeito estimado (dividido por 2^k)."""
@@ -100,20 +70,10 @@ def calcular_porcoes_de_variacao(vetor, efeitos_totais, nomes_efeitos, k):
     }
 
 
-def calcular_erros(df, K, R):
-    for i in range(1, R + 1):  # Para cada Yi
-        # Cria a coluna de erro Ei, que é Yi - Ŷi
-        df[f'Ei{i}'] = df[f'Yi{i}'] - df['Ŷi']
-    return df
-
 def main():
-    k = int(input("Digite o número de fatores (K) (2 a 5): "))
+    k = int(input("Digite o número de fatores (2 a 5): "))
     while k < 2 or k > 5:
-        k = int(input("Número inválido. Digite um K de 2 a 5: "))
-
-    r = int(input("Digite o número de replicações (R) (1 a 3): "))
-    while r < 1 or r > 3:
-        r = int(input("Número inválido. Digite um R de 1 a 3: "))
+        k = int(input("Número inválido. Digite de 2 a 5: "))
 
     tabela_sinais = gerar_tabela_sinais(k)
     nomes_efeitos_compostos = gerar_nomes_efeitos(k)
@@ -125,18 +85,12 @@ def main():
     colunas = ['I'] + [chr(65 + i) for i in range(k)] + nomes_efeitos_compostos
     df = pd.DataFrame(tabela_completa, columns=colunas)
 
-    df_respostas = ler_respostas(len(df), r)
-
-    df_erros = calcular_erros(df_respostas, k, r)
-
-    print("\nTabela de Erros:")
-    print(df_erros)
-
-    df['Y'] = df_respostas['Ŷi']
+    respostas = ler_respostas(len(df))
+    df['Y'] = respostas
 
     df = adicionar_linha_somas(df, k)
 
-    print("\nTabela 2^K:")
+    print("\nTabela:")
     print(df)
 
     # Bagunça
