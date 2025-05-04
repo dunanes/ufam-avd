@@ -3,78 +3,76 @@ import numpy as np
 import pandas as pd
 
 def gerar_tabela_sinais(k):
-    # Gera todas as combinações de 0 e 1 para cada valor de K
+    """Gera a matriz de sinais com -1 e 1 para k fatores."""
     tabela_binaria = list(itertools.product([0, 1], repeat=k))
     tabela_invertida = [linha[::-1] for linha in tabela_binaria]
     tabela_invertida.reverse()
-    # Converte a tabela binária para -1 e 1, onde 0 -> -1 e 1 -> 1
-    tabela_sinais = [[1 if x == 0 else -1 for x in linha] for linha in tabela_invertida]
-    return tabela_sinais
+    return [[1 if x == 0 else -1 for x in linha] for linha in tabela_invertida]
 
 def gerar_nomes_efeitos(k):
-    # Gera todas as combinações possíveis de A,B,C,D,E para cada valor de K
-    # Ex: A, B, AB; A, B, C, AB, AC, BC, ABC; etc
+    """Gera os nomes dos efeitos combinados (exclui os principais A, B, C...)."""
+    fatores = [chr(65 + i) for i in range(k)]  # ['A', 'B', 'C', ...]
     nomes = []
-    fatores = [chr(65 + i) for i in range(k)]  # A, B, C, ...
     for i in range(1, k+1):
         for combinacao in itertools.combinations(fatores, i):
             nomes.append(''.join(combinacao))
-    nomes = nomes[k:]
-    return nomes
+    return nomes[k:]  # Remove os efeitos principais
+
+def calcular_efeitos(tabela, nomes_efeitos, k):
+    """Calcula os efeitos combinados e adiciona à tabela."""
+    for linha in tabela:
+        for nome_efeito in nomes_efeitos:
+            valor = 1
+            for fator in nome_efeito:
+                idx = ord(fator) - 65  # índice na linha (+1 por conta da coluna 'I')
+                valor *= linha[idx + 1]
+            linha.append(valor)
+    return tabela
+
+def ler_respostas(num_linhas):
+    """Lê as respostas Y do usuário para cada linha da tabela."""
+    respostas = []
+    print("\nDigite as respostas (y) para cada linha da tabela:")
+    for i in range(num_linhas):
+        y = float(input(f"Resposta para linha {i+1}: "))
+        respostas.append(y)
+    return respostas
+
+def adicionar_linha_somas(df, k):
+    """Adiciona linha com soma ponderada por Y e linha com efeito estimado (dividido por 2^k)."""
+    # Linha de somas: ∑(coluna * Y)
+    soma_ponderada = [sum(df[col] * df['Y']) for col in df.columns[:-1]]
+    soma_ponderada.append("Total")
+    df.loc[len(df)] = soma_ponderada
+
+    # Linha de efeitos estimados: soma / 2^k
+    efeitos_estimados = df.iloc[-1, :-1] / (2 ** k)
+    efeitos_estimados = list(efeitos_estimados) + [f"Total / {2**k}"]
+    df.loc[len(df)] = efeitos_estimados
+
+    return df
 
 def main():
     k = int(input("Digite o número de fatores (2 a 5): "))
     while k < 2 or k > 5:
         k = int(input("Número inválido. Digite de 2 a 5: "))
 
-    tabela = gerar_tabela_sinais(k)
+    tabela_sinais = gerar_tabela_sinais(k)
     nomes_efeitos = gerar_nomes_efeitos(k)
 
-    # Adicionando a coluna "I" à esquerda da tabela (valor sempre 1)
-    tabela_completa = [[1] + linha for linha in tabela]
+    # Adiciona coluna "I" no início
+    tabela_completa = [[1] + linha for linha in tabela_sinais]
+    tabela_completa = calcular_efeitos(tabela_completa, nomes_efeitos, k)
 
-    # Adicionando as novas colunas de efeitos (calcular valores)
-    for linha in tabela_completa:
-        for nome_efeito in nomes_efeitos:
-            # Calcular o valor para o efeito (produto das colunas correspondentes)
-            valor_efeito = 1
-            for fator in nome_efeito:
-                # Encontrar o índice da coluna e multiplicar o valor correspondente
-                indice_coluna = ord(fator) - 65  # Convertendo 'A' -> 0, 'B' -> 1, etc.
-                valor_efeito *= linha[indice_coluna + 1]  # +1 pois a coluna "I" está na posição 0
-
-            linha.append(valor_efeito)  # Atribui o valor do efeito
-
-    # Exibindo a tabela com as novas colunas
-    colunas = ["I"] + [chr(65 + i) for i in range(k)] + nomes_efeitos  # Inclui os nomes de efeitos
+    colunas = ['I'] + [chr(65 + i) for i in range(k)] + nomes_efeitos
     df = pd.DataFrame(tabela_completa, columns=colunas)
-    
-    respostas = []
-    print("\nDigite as respostas (y) para cada linha da tabela:")
-    for i, linha in enumerate(tabela):
-        y = float(input(f"Resposta para {linha}: "))
-        respostas.append(y)
 
-    # Adicionando a coluna 'Y' à tabela (no final)
+    respostas = ler_respostas(len(df))
     df['Y'] = respostas
 
-    # Calculando a nova linha com as somas das colunas multiplicadas por Y
-    nova_linha = []
-    for col in df.columns[:-1]:  # Excluindo a coluna 'Y' da multiplicação
-        soma = sum(df[col] * df['Y'])  # Multiplicando e somando as colunas
-        nova_linha.append(soma)
-    
-    # Adicionando a nova linha com o resultado das somas
-    nova_linha.append("Total")  # A última célula pode ser "null" como solicitado
-    df.loc[len(df)] = nova_linha
+    df = adicionar_linha_somas(df, k)
 
-    # Adicionando nova linha com os valores divididos por 2^k
-    linha_somas = df.iloc[-1, :-1]  # Pega a linha anterior, exceto a coluna 'Y'
-    linha_normalizada = linha_somas / (2 ** k)
-    linha_normalizada = list(linha_normalizada) + [f"Total / {2**k}"]
-    df.loc[len(df)] = linha_normalizada
-
-    print("\nTabela:")
+    print("\nTabela final com efeitos estimados:")
     print(df)
 
 if __name__ == "__main__":
