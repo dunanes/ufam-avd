@@ -95,16 +95,32 @@ def calcular_porcoes_de_variacao(vetor, efeitos_totais, nomes_efeitos, k):
     """Retorna um dicionário com a porção de variação de cada efeito."""
 
     return {
-        nome: round((2 ** k * (valor ** 2) / efeitos_totais )* 100,1)
+        nome: round((2 ** k * (valor ** 2) / efeitos_totais )* 100,2)
         for nome, valor in zip(nomes_efeitos, vetor)
     }
 
+def calcular_quadrado_dos_erros(df, K, R):
+    soma_total_quadrados = 0
+    
+    for index, row in df.iterrows():
+        soma_quadrados_linha = 0
+        for i in range(K+1, K+R+1):
+            erro = row[f'Ei{i}']
+            print(erro)
+            soma_quadrados_linha += erro ** 2 
+        
+        soma_total_quadrados += soma_quadrados_linha
+    
+    return soma_total_quadrados
+
 
 def calcular_erros(df, K, R):
-    for i in range(1, R + 1):  # Para cada Yi
-        # Cria a coluna de erro Ei, que é Yi - Ŷi
+    soma_quadrados_erros = 0
+    for i in range(1, R + 1):
         df[f'Ei{i}'] = df[f'Yi{i}'] - df['Ŷi']
-    return df
+        soma_quadrados_erros += (df[f'Ei{i}'] ** 2).sum()
+    return df, soma_quadrados_erros
+
 
 def main():
     k = int(input("Digite o número de fatores (K) (2 a 5): "))
@@ -127,7 +143,7 @@ def main():
 
     df_respostas = ler_respostas(len(df), r)
 
-    df_erros = calcular_erros(df_respostas, k, r)
+    df_erros,erros = calcular_erros(df_respostas, k, r)
 
     print("\nTabela de Erros:")
     print(df_erros)
@@ -141,7 +157,7 @@ def main():
 
     # Bagunça
     vetor_resultado = extrair_vetor_resultado(df)
-    efeitos_totais = calcular_efeitos_totais(vetor_resultado, k)
+    efeitos_totais = calcular_efeitos_totais(vetor_resultado, k) + erros
     print("\nEfeitos:", efeitos_totais)
 
     nomes_efeitos = [chr(65 + i) for i in range(k)] + gerar_nomes_efeitos(k)
@@ -150,6 +166,7 @@ def main():
     print("\nPorções de Variação por Efeito:")
     for nome, proporcao in porcoes.items():
         print(f"{nome}: {proporcao}%")
+    print(f"Erros: {round((erros / efeitos_totais) * 100, 2)}%")
 
 
 if __name__ == "__main__":
