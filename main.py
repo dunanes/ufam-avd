@@ -36,6 +36,7 @@ def ler_respostas2(num_linhas, R):
     for i in range(num_linhas):
         linha_respostas = []
         print(f"Para a linha {i+1}, digite {R} respostas:")
+        #print(f"Linha :")
         for r in range(R):
             y = float(input(f"Resposta {r+1} para linha {i+1}: "))
             linha_respostas.append(y)
@@ -44,7 +45,7 @@ def ler_respostas2(num_linhas, R):
         respostas.append(media_resposta)
     return respostas
 
-def ler_respostas(num_linhas, R):
+def ler_respostas(num_linhas, R, tabela):
     """Lê as respostas Y do usuário para cada linha da tabela, permitindo R respostas por linha e retorna um DataFrame."""
     respostas = []
     colunas = [f'Yi{r+1}' for r in range(R)]  # Nomes das colunas para as respostas individuais
@@ -52,9 +53,10 @@ def ler_respostas(num_linhas, R):
     
     for i in range(num_linhas):
         linha_respostas = []
-        print(f"Para a linha {i+1}, digite {R} respostas:")
+        #print(f"Para a linha {i+1}, digite {R} respostas:")
+        #print(f"{tabela[i]}")
         for r in range(R):
-            y = float(input(f"Resposta {r+1} para linha {i+1}: \n"))
+            y = float(input(f"Linha: {tabela[i]}, Repetição: {r+1}, Entrada: "))
             linha_respostas.append(y)
         
         # Adiciona a média das respostas para cada linha
@@ -141,7 +143,7 @@ def main():
     colunas = ['I'] + [chr(65 + i) for i in range(k)] + nomes_efeitos_compostos
     df = pd.DataFrame(tabela_completa, columns=colunas)
 
-    df_respostas = ler_respostas(len(df), r)
+    df_respostas = ler_respostas(len(df), r, tabela_sinais)
 
     df_erros,erros = calcular_erros(df_respostas, k, r)
 
